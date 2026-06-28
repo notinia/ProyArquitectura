@@ -30,7 +30,10 @@ int muestreoSegS = 1;
 bool sistemaActivo = true;
 char sistemaID[32] = "SENSOR-01";
 
-/* Cargar secrets */
+// define sound speed in cm/uS
+#define SOUND_SPEED 0.034
+
+// Cargar secrets
 #if __has_include("secrets.h")
 #include "secrets.h"
 #else
@@ -52,6 +55,7 @@ PubSubClient mqttClient(espClient);
 bool buzzerSilenciadoManual = false;
 char buzzerModo[8] = "auto";
 unsigned long ultimaLect = 0;
+float distanceCm = 0;
 
 void setup() {
   // Recordar setear éste baudrate en Serial Monitor.

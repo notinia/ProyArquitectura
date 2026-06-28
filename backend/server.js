@@ -134,7 +134,7 @@ app.post('/api/ingesta', (req, res) => {
   const zona = distanciaAZona(distancia_mm);
   const hoy = new Date().toISOString().slice(0, 10);
   const existing = db.prepare("SELECT id FROM heatmap WHERE zona = ? AND date(timestamp) = ?").get(zona, hoy);
-  
+
   if (existing) {
     db.prepare("UPDATE heatmap SET conteo = conteo + 1 WHERE id = ?").run(existing.id);
   } else {
@@ -237,53 +237,53 @@ app.get('/api/exportar/pdf', autenticar, (req, res) => {
   const { desde, hasta } = req.query;
   const rows = db.prepare(`SELECT * FROM lecturas WHERE timestamp BETWEEN ? AND ? ORDER BY timestamp ASC`).all(desde, hasta);
   const doc = new PDFDocument({ margin: 50, size: 'A4' });
-  
+
   res.setHeader('Content-Type', 'application/pdf');
   res.setHeader('Content-Disposition', `attachment; filename="registros_tof_${desde.slice(0,10)}.pdf"`);
   doc.pipe(res);
-  
+
   doc.fillColor('#1E3A5F').fontSize(20).text('Sistema de Detección ToF', { align: 'center' });
   doc.moveDown(1);
-  
+
   const colWidths = [40, 160, 100, 70, 100];
   const cols = ['ID', 'Timestamp', 'Distancia', 'Alerta', 'Sensor ID'];
-  
+
   // Guardamos la altura 'Y' del encabezado
-  let currentY = doc.y; 
+  let currentY = doc.y;
   let x = 50;
-  
+
   doc.fontSize(10);
-  cols.forEach((c, i) => { 
-    doc.text(c, x, currentY, { width: colWidths[i] }); 
-    x += colWidths[i]; 
+  cols.forEach((c, i) => {
+    doc.text(c, x, currentY, { width: colWidths[i] });
+    x += colWidths[i];
   });
   doc.moveDown(0.5);
-  
+
   // Imprimir filas
   for (let i = 0; i < Math.min(rows.length, 200); i++) {
     const r = rows[i];
     if (doc.y > 750) doc.addPage(); // Salto de página
-    
+
     currentY = doc.y; // <-- CLAVE: Fijar la altura 'Y' para toda la fila
     x = 50;
-    
+
     doc.fillColor(r.alerta ? '#CC0000' : '#222').fontSize(9);
     const vals = [r.id, r.timestamp, r.distancia_mm + ' mm', r.alerta ? 'ALERTA' : 'OK', r.sensor_id];
-    
-    vals.forEach((v, ci) => { 
+
+    vals.forEach((v, ci) => {
       // Usamos currentY en lugar de doc.y para que no haga escalera
-      doc.text(String(v), x, currentY, { width: colWidths[ci] }); 
-      x += colWidths[ci]; 
+      doc.text(String(v), x, currentY, { width: colWidths[ci] });
+      x += colWidths[ci];
     });
-    
+
     doc.moveDown(0.4);
   }
-  
+
   doc.end();
 });
 
 // ================================================================
-// RUTAS: CONFIGURACIÓN 
+// RUTAS: CONFIGURACIÓN
 // ================================================================
 app.get('/api/config', autenticar, soloAdmin, (req, res) => {
   res.json(getConfig());
@@ -308,7 +308,7 @@ app.post('/api/sistema/toggle', autenticar, soloAdmin, (req, res) => {
 });
 
 app.post('/api/buzzer/silenciar', autenticar, (req, res) => {
-  const comando = req.body?.comando || 'SILENCIAR';
+  const comando = req.body?.comando || 'off';
   mqttClient.publish('caece/tof/buzzer', comando);
   res.json({ ok: true, estado: comando });
 });

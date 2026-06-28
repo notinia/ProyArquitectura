@@ -12,36 +12,61 @@ const config = {
   MQTT_CLIENT: 'esp32-tof-caece-v3'
 };
 
+function parseLine(line) {
+  const trimmed = line.trim();
+  if (!trimmed || trimmed.startsWith('#') || trimmed.startsWith('//') || trimmed.startsWith('/*')) {
+    return null;
+  }
+  const eqIndex = trimmed.indexOf('=');
+  if (eqIndex === -1) return null;
+
+  const key = trimmed.slice(0, eqIndex).trim();
+  let val = trimmed.slice(eqIndex + 1).trim();
+
+  // Strip trailing semicolon
+  if (val.endsWith(';')) val = val.slice(0, -1).trim();
+
+  // Strip surrounding quotes
+  if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+    val = val.slice(1, -1);
+  }
+
+  return { key, val };
+}
+
 if (fs.existsSync(envPath)) {
   const envContent = fs.readFileSync(envPath, 'utf8');
   const lines = envContent.split('\n');
+  const cleanLines = [];
+
   for (const line of lines) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith('#') || trimmed.startsWith('//') || trimmed.startsWith('/*')) {
+    const parsed = parseLine(line);
+    if (!parsed) {
+      cleanLines.push(line);
       continue;
     }
-    const parts = trimmed.split('=');
-    if (parts.length >= 2) {
-      const key = parts[0].trim();
-      let val = parts.slice(1).join('=').trim();
-      if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
-        val = val.slice(1, -1);
-      }
 
-      if (key === 'WIFI_SSID' || key === 'WIFI_SSD') {
-        config.WIFI_SSID = val;
-      } else if (key === 'WIFI_PASS') {
-        config.WIFI_PASS = val;
-      } else if (key === 'MQTT_BROKER') {
-        config.MQTT_BROKER = val;
-      } else if (key === 'MQTT_PORT') {
-        config.MQTT_PORT = val;
-      } else if (key === 'MQTT_CLIENT') {
-        config.MQTT_CLIENT = val;
-      }
+    const { key, val } = parsed;
+
+    // Build clean line for .env rewrite (no quotes, no semicolons)
+    cleanLines.push(`${key}=${val}`);
+
+    if (key === 'WIFI_SSID' || key === 'WIFI_SSD') {
+      config.WIFI_SSID = val;
+    } else if (key === 'WIFI_PASS') {
+      config.WIFI_PASS = val;
+    } else if (key === 'MQTT_BROKER') {
+      config.MQTT_BROKER = val;
+    } else if (key === 'MQTT_PORT') {
+      config.MQTT_PORT = val;
+    } else if (key === 'MQTT_CLIENT') {
+      config.MQTT_CLIENT = val;
     }
   }
-  console.log('Loaded configurations from .env');
+
+  // Rewrite .env sanitized so Docker/shell can read it cleanly
+  fs.writeFileSync(envPath, cleanLines.join('\n'), 'utf8');
+  console.log('Loaded and sanitized .env (removed semicolons and surrounding quotes)');
 } else {
   console.log('.env file not found. Generating secrets.h with default simulation values.');
 }
