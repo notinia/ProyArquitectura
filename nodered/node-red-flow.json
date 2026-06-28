@@ -1,51 +1,55 @@
 [
     {
-        "id": "tab-tof",
+        "id": "5306dc40c5a9c0a0",
         "type": "tab",
         "label": "Motor ToF",
         "disabled": false,
         "info": ""
     },
     {
-        "id": "mqtt-in-distancia",
+        "id": "3f88915581c83f75",
         "type": "mqtt in",
-        "z": "tab-tof",
+        "z": "5306dc40c5a9c0a0",
         "name": "Lectura Distancia",
         "topic": "caece/tof/distancia",
         "qos": "0",
         "datatype": "auto",
         "broker": "broker-publico",
+        "nl": false,
+        "rap": false,
         "inputs": 0,
-        "x": 160,
-        "y": 200,
+        "x": 220,
+        "y": 460,
         "wires": [
             [
-                "reglas-negocio"
+                "0e7dacf036fd3222",
+                "4a3d2f4368cbf152",
+                "e3d2fd45f68fee7a"
             ]
         ]
     },
     {
-        "id": "mqtt-in-config",
+        "id": "94d92ab5cea319a1",
         "type": "mqtt in",
-        "z": "tab-tof",
+        "z": "5306dc40c5a9c0a0",
         "name": "Sincronizar Config",
         "topic": "caece/tof/config",
         "qos": "0",
         "datatype": "json",
         "broker": "broker-publico",
         "inputs": 0,
-        "x": 160,
-        "y": 100,
+        "x": 220,
+        "y": 360,
         "wires": [
             [
-                "actualizar-variables"
+                "40bc89e19800ecfa"
             ]
         ]
     },
     {
-        "id": "inject-inicio",
+        "id": "21555c1dc5212c93",
         "type": "inject",
-        "z": "tab-tof",
+        "z": "5306dc40c5a9c0a0",
         "name": "Al Iniciar",
         "props": [],
         "repeat": "",
@@ -53,18 +57,18 @@
         "once": true,
         "onceDelay": 0.1,
         "topic": "",
-        "x": 140,
-        "y": 40,
+        "x": 200,
+        "y": 300,
         "wires": [
             [
-                "http-get-config"
+                "9f05e407cb395080"
             ]
         ]
     },
     {
-        "id": "http-get-config",
+        "id": "9f05e407cb395080",
         "type": "http request",
-        "z": "tab-tof",
+        "z": "5306dc40c5a9c0a0",
         "name": "Cargar Config API",
         "method": "GET",
         "ret": "obj",
@@ -73,50 +77,60 @@
         "tls": "",
         "persist": false,
         "proxy": "",
+        "insecureHTTPParser": false,
         "authType": "",
-        "x": 350,
-        "y": 40,
+        "senderr": false,
+        "headers": [],
+        "x": 410,
+        "y": 300,
         "wires": [
             [
-                "actualizar-variables"
+                "40bc89e19800ecfa",
+                "1ca390b0a270c727"
             ]
         ]
     },
     {
-        "id": "actualizar-variables",
+        "id": "40bc89e19800ecfa",
         "type": "function",
-        "z": "tab-tof",
+        "z": "5306dc40c5a9c0a0",
         "name": "Guardar Globales",
         "func": "if (msg.payload.umbral_mm !== undefined) global.set('umbral_mm', Number(msg.payload.umbral_mm));\nif (msg.payload.sistema_activo !== undefined) global.set('sistema_activo', msg.payload.sistema_activo);\nif (msg.payload.email_alertas !== undefined) global.set('email_alertas', msg.payload.email_alertas);\nif (msg.payload.sistema_id !== undefined) global.set('sistema_id', msg.payload.sistema_id);\nreturn msg;",
         "outputs": 1,
-        "x": 590,
-        "y": 80,
+        "x": 650,
+        "y": 340,
         "wires": [
             []
         ]
     },
     {
-        "id": "reglas-negocio",
+        "id": "0e7dacf036fd3222",
         "type": "function",
-        "z": "tab-tof",
+        "z": "5306dc40c5a9c0a0",
         "name": "Motor de Reglas",
-        "func": "const dist = Number(msg.payload);\nif (isNaN(dist)) return null;\n\nconst umbral = global.get(\"umbral_mm\") || 200;\nconst activo = global.get(\"sistema_activo\");\nconst emailDest = global.get(\"email_alertas\") || \"admin@ejemplo.com\";\n\nif (activo === false || activo === \"false\") return [null, null];\n\nconst alerta = (dist <= umbral) ? 1 : 0;\n\n// Salida 1: POST a la Base de Datos\nconst msgDB = {\n    payload: {\n        distancia_mm: dist,\n        alerta: alerta,\n        sensor_id: global.get(\"sistema_id\") || \"SENSOR-01\"\n    }\n};\n\n// Salida 2: Enviar Alerta\nlet msgAlerta = null;\nif (alerta === 1) {\n    msgAlerta = {\n        topic: \"⚠️ Alerta de proximidad ToF\",\n        to: emailDest,\n        payload: \"\\nSe detectó un objeto a \" + dist + \" mm.\\n\\nUmbral configurado: \" + umbral + \" mm.\\nHora del sistema: \" + new Date().toLocaleString() + \"\\n\\nSistema CAECE ToF Orchestrator.\"\n    };\n}\n\nreturn [msgDB, msgAlerta];",
+        "func": "const dist = Number(msg.payload);\nif (isNaN(dist)) return null;\n\nconst umbral = global.get(\"umbral_mm\") || 200;\nconst activo = global.get(\"sistema_activo\");\nconst emailDest = (global.get(\"email_alertas\") || \"\").trim() || \"admin@ejemplo.com\";\n\nif (activo === false || activo === \"false\") return [null, null];\n\nconst alerta = (dist <= umbral) ? 1 : 0;\n\n// Salida 1: POST a la Base de Datos\nconst msgDB = {\n    payload: {\n        distancia_mm: dist,\n        alerta: alerta,\n        sensor_id: global.get(\"sistema_id\") || \"SENSOR-01\"\n    }\n};\n\n// Salida 2: Enviar Alerta\nlet msgAlerta = null;\nif (alerta === 1) {\n    msgAlerta = {\n        topic: \"⚠️ Alerta de proximidad ToF\",\n        to:    String(emailDest),          // force string, never undefined\n        from:  \"tof@caece.edu.ar\",         // required by some SMTP servers\n        payload: \"\\nSe detectó un objeto a \" + dist + \" mm.\\n\\n\" +\n                \"Umbral configurado: \" + umbral + \" mm.\\n\" +\n                \"Hora del sistema: \" + new Date().toLocaleString() + \"\\n\\n\" +\n                \"Sistema CAECE ToF Orchestrator.\"\n    };\n}\n\nreturn [msgDB, msgAlerta];",
         "outputs": 2,
-        "x": 360,
-        "y": 200,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 420,
+        "y": 460,
         "wires": [
             [
-                "http-post-db"
+                "0cb87e948bd37a1b",
+                "c315f40a9e5929e9"
             ],
             [
-                "limitador-correo"
+                "70cce8e6e66d6855"
             ]
         ]
     },
     {
-        "id": "http-post-db",
+        "id": "0cb87e948bd37a1b",
         "type": "http request",
-        "z": "tab-tof",
+        "z": "5306dc40c5a9c0a0",
         "name": "Ingesta a Backend",
         "method": "POST",
         "ret": "obj",
@@ -125,34 +139,42 @@
         "tls": "",
         "persist": false,
         "proxy": "",
+        "insecureHTTPParser": false,
         "authType": "",
-        "x": 610,
-        "y": 180,
+        "senderr": false,
+        "headers": [],
+        "x": 670,
+        "y": 440,
         "wires": [
             []
         ]
     },
     {
-        "id": "limitador-correo",
+        "id": "70cce8e6e66d6855",
         "type": "function",
-        "z": "tab-tof",
+        "z": "5306dc40c5a9c0a0",
         "name": "Filtro Anti-Spam",
         "func": "const now = Date.now();\nconst lastAlert = context.get(\"lastAlert\") || 0;\n\n// Bloquea correos sucesivos por 30 segundos para no saturar\nif (now - lastAlert > 30000) {\n    context.set(\"lastAlert\", now);\n    return msg;\n}\nreturn null;",
         "outputs": 1,
-        "x": 610,
-        "y": 240,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 670,
+        "y": 500,
         "wires": [
             [
-                "debug-alerta",
-                "ui-toast",
-                "email-node"
+                "4a4d9666ba64a688",
+                "41aea86a76887f93",
+                "e76db475b3570de3"
             ]
         ]
     },
     {
-        "id": "debug-alerta",
+        "id": "4a4d9666ba64a688",
         "type": "debug",
-        "z": "tab-tof",
+        "z": "5306dc40c5a9c0a0",
         "name": "Consola Alertas",
         "active": true,
         "tosidebar": true,
@@ -160,14 +182,16 @@
         "tostatus": false,
         "complete": "payload",
         "targetType": "msg",
-        "x": 860,
-        "y": 180,
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 920,
+        "y": 440,
         "wires": []
     },
     {
-        "id": "ui-toast",
+        "id": "41aea86a76887f93",
         "type": "ui_toast",
-        "z": "tab-tof",
+        "z": "5306dc40c5a9c0a0",
         "position": "top right",
         "displayTime": "3",
         "highlight": "",
@@ -178,23 +202,180 @@
         "raw": false,
         "topic": "Alerta ToF",
         "name": "Notificación Visual",
-        "x": 870,
-        "y": 240,
+        "x": 930,
+        "y": 500,
         "wires": []
     },
     {
-        "id": "email-node",
+        "id": "e76db475b3570de3",
         "type": "e-mail",
-        "z": "tab-tof",
-        "server": "smtp.gmail.com",
-        "port": "465",
-        "secure": true,
-        "tls": true,
-        "name": "Gmail Alertas",
+        "z": "5306dc40c5a9c0a0",
+        "server": "sandbox.smtp.mailtrap.io",
+        "port": "2525",
+        "authtype": "BASIC",
+        "saslformat": false,
+        "token": "oauth2Response.access_token",
+        "secure": false,
+        "tls": false,
+        "name": "admin@ejemplo.com",
         "dname": "Enviar Correo",
-        "x": 860,
-        "y": 300,
+        "x": 920,
+        "y": 560,
         "wires": []
+    },
+    {
+        "id": "4a3d2f4368cbf152",
+        "type": "ui_gauge",
+        "z": "5306dc40c5a9c0a0",
+        "name": "",
+        "group": "32cff3294d8faf26",
+        "order": 0,
+        "width": 0,
+        "height": 0,
+        "gtype": "gage",
+        "title": "Lectura de Distancia",
+        "label": "Distancia (mm)",
+        "format": "{{value}}",
+        "min": 0,
+        "max": "2000",
+        "colors": [
+            "#00b500",
+            "#e6e600",
+            "#ca3838"
+        ],
+        "seg1": "",
+        "seg2": "",
+        "diff": false,
+        "className": "",
+        "x": 460,
+        "y": 580,
+        "wires": []
+    },
+    {
+        "id": "ace6d890e73e3020",
+        "type": "mqtt in",
+        "z": "5306dc40c5a9c0a0",
+        "name": "Lectura de Configuración",
+        "topic": "caece/tof/config",
+        "qos": "0",
+        "datatype": "json",
+        "broker": "broker-publico",
+        "nl": false,
+        "rap": false,
+        "inputs": 0,
+        "x": 230,
+        "y": 720,
+        "wires": [
+            [
+                "1ca390b0a270c727"
+            ]
+        ]
+    },
+    {
+        "id": "e3d2fd45f68fee7a",
+        "type": "ui_chart",
+        "z": "5306dc40c5a9c0a0",
+        "name": "",
+        "group": "32cff3294d8faf26",
+        "order": 1,
+        "width": "6",
+        "height": "6",
+        "label": "Radar de Distancia",
+        "chartType": "radar",
+        "legend": "true",
+        "xformat": "HH:mm:ss",
+        "interpolate": "linear",
+        "nodata": "no hay info disponible",
+        "dot": false,
+        "ymin": "20",
+        "ymax": "2000",
+        "removeOlder": 1,
+        "removeOlderPoints": "",
+        "removeOlderUnit": "3600",
+        "cutout": 0,
+        "useOneColor": false,
+        "useUTC": false,
+        "colors": [
+            "#1f77b4",
+            "#aec7e8",
+            "#ff7f0e",
+            "#2ca02c",
+            "#98df8a",
+            "#d62728",
+            "#ff9896",
+            "#9467bd",
+            "#c5b0d5"
+        ],
+        "outputs": 1,
+        "useDifferentColor": false,
+        "className": "",
+        "x": 430,
+        "y": 640,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "1ca390b0a270c727",
+        "type": "ui_template",
+        "z": "5306dc40c5a9c0a0",
+        "group": "32cff3294d8faf26",
+        "name": "Widget Configuracion",
+        "order": 4,
+        "width": 0,
+        "height": 0,
+        "format": "<div ng-if=\"msg\">\n    <h3> Configuración </h3>\n    <table width=\"100%\">\n        <tr>\n            <td><b>Umbral</b></td>\n            <td>{{msg.payload.umbral_mm}} mm</td>\n        </tr>\n        <tr>\n            <td><b>Muestreo</b></td>\n            <td>{{msg.payload.tiempo_muestreo_s}} s</td>\n        </tr>\n        <tr>\n            <td><b>Sensores</b></td>\n            <td>{{msg.payload.cantidad_sensores}}</td>\n        </tr>\n        <tr>\n            <td><b>Email alertas</b></td>\n            <td>{{msg.payload.email_alertas}}</td>\n        </tr>\n        <tr>\n            <td><b>Sistema</b></td>\n            <td>{{msg.payload.sistema_activo ? '✅ Activo' : '⛔ Inactivo'}}</td>\n        </tr>\n        <tr>\n            <td><b>Sensor ID</b></td>\n            <td>{{msg.payload.sistema_id}}</td>\n        </tr>\n    </table>\n</div>",
+        "storeOutMessages": true,
+        "fwdInMessages": true,
+        "resendOnRefresh": true,
+        "templateScope": "local",
+        "className": "",
+        "x": 600,
+        "y": 740,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "c315f40a9e5929e9",
+        "type": "function",
+        "z": "5306dc40c5a9c0a0",
+        "name": "Color Alerta",
+        "func": "const dist = msg.payload.distancia_mm;\nconst umbral = global.get(\"umbral_mm\") || 200;\nconst alerta = dist <= umbral;\n\nmsg.payload = {\n    distancia: dist,\n    umbral: umbral,\n    alerta: alerta\n};\n\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 690,
+        "y": 660,
+        "wires": [
+            [
+                "bc3a6c77c9e5f077"
+            ]
+        ]
+    },
+    {
+        "id": "bc3a6c77c9e5f077",
+        "type": "ui_template",
+        "z": "5306dc40c5a9c0a0",
+        "group": "32cff3294d8faf26",
+        "name": "Widget Alerta",
+        "order": 4,
+        "width": 0,
+        "height": 0,
+        "format": "<div ng-if=\"msg\" style=\"\n    text-align: center;\n    padding: 16px;\n    border-radius: 8px;\n    font-size: 1.4em;\n    font-weight: bold;\n    background-color: {{msg.payload.alerta ? '#ff4444' : '#44bb44'}};\n    color: white;\n\">\n    <span ng-if=\"msg.payload.alerta\">⚠️ ALERTA</span>\n    <span ng-if=\"!msg.payload.alerta\">✅ OK</span>\n    <br/>\n    <span style=\"font-size:0.8em\">\n        {{msg.payload.distancia}} mm — umbral {{msg.payload.umbral}} mm\n    </span>\n</div>",
+        "storeOutMessages": true,
+        "fwdInMessages": true,
+        "resendOnRefresh": true,
+        "templateScope": "local",
+        "className": "",
+        "x": 920,
+        "y": 660,
+        "wires": [
+            []
+        ]
     },
     {
         "id": "broker-publico",
@@ -208,5 +389,33 @@
         "protocolVersion": "4",
         "keepalive": "60",
         "cleansession": true
+    },
+    {
+        "id": "32cff3294d8faf26",
+        "type": "ui_group",
+        "name": "Default",
+        "tab": "55c1b6cb430f3e0e",
+        "order": 1,
+        "disp": true,
+        "width": 6,
+        "collapse": false,
+        "className": ""
+    },
+    {
+        "id": "55c1b6cb430f3e0e",
+        "type": "ui_tab",
+        "name": "Home",
+        "icon": "dashboard",
+        "disabled": false,
+        "hidden": false
+    },
+    {
+        "id": "24af92d8f3abb327",
+        "type": "global-config",
+        "env": [],
+        "modules": {
+            "node-red-dashboard": "3.6.6",
+            "node-red-node-email": "5.2.4"
+        }
     }
 ]

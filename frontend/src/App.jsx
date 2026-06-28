@@ -125,7 +125,7 @@ function BuzzerPanel({ token, modo, onModoChange }) {
   }
 
   async function silenciarManual() {
-    await publicar("SILENCIAR");
+    await publicar("off");
   }
 
   const opciones = [

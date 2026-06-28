@@ -14,18 +14,22 @@ Descomprimí el archivo `tof-sistema-completo.zip`. Vas a tener esta estructura:
 
 ```
 tof-sistema/
-├── sketch_v2.ino          ← firmware del ESP32
-├── diagram.json           ← circuito para Wokwi
-├── libraries.txt          ← librerías para Wokwi
+├── esp_software.ino       ← firmware del ESP32
+├── sync-env.js            ← crear secrets.h
 ├── docker-compose.yml
+├── .env.example           ← variables de entorno (ejemplo)
 ├── backend/
 │   ├── server.js
 │   └── package.json
 └── frontend/
-    ├── src/App.jsx
-    └── package.json
+│   ├── src/App.jsx
+│   └── package.json
+├── nodered/
+    └── node-red-flow.json
 ```
 
+[!CAUTION]
+Recordar crear tu propio `.env` con las credenciales necesarias para la comunicación del microcontrolador con el exterior.
 ---
 
 ## 2. Levantar el backend con Docker
@@ -37,6 +41,7 @@ docker compose up -d
 ```
 
 Esto levanta:
+
 - **Backend** en `http://localhost:3001`
 - **Node-RED** en `http://localhost:1880`
 
@@ -64,51 +69,22 @@ El panel web queda disponible en `http://localhost:5173`.
 
 Credenciales de acceso:
 
-| Rol | Usuario | Contraseña |
-|---|---|---|
-| Administrador | `admin` | `admin123` |
-| Usuario | `usuario` | `user123` |
+| Rol           | Usuario   | Contraseña |
+| ------------- | --------- | ---------- |
+| Administrador | `admin`   | `admin123` |
+| Usuario       | `usuario` | `user123`  |
 
 ---
 
-## 4. Simular el ESP32 en Wokwi
+## 4.Inicializar el hardware
 
-### 4.1 Crear el proyecto
-
-1. Ir a [wokwi.com](https://wokwi.com) → **New Project** → elegir **ESP32**
-2. Se abre el editor con un `sketch.ino` vacío y un `diagram.json` por defecto
-
-### 4.2 Cargar el código
-
-**Pestaña `sketch.ino`:** borrá todo el contenido y pegá el contenido de `sketch_v2.ino`
-
-**Pestaña `diagram.json`:** hacé clic en el ícono de la flecha (▼) al lado del nombre del archivo → **Edit diagram.json** → reemplazá todo con el contenido de `diagram.json`
-
-### 4.3 Agregar las librerías
-
-1. Clic en el ícono de la biblioteca (📚) en el panel izquierdo
-2. Buscar `PubSubClient` → instalar
-3. Buscar `ArduinoJson` → instalar
-
-### 4.4 Correr la simulación
-
-Clic en el botón **▶ Start Simulation**.
-
-En el monitor serie (parte inferior) deberías ver:
-
-```
-[WiFi] Conectando......
-[WiFi] Conectado. IP: 10.0.0.2
-[MQTT] Conectando... OK
-[ToF] Distancia: 350 mm
-[ToF] Distancia: 350 mm
-```
-
-### 4.5 Simular detecciones
-
-1. Hacé clic sobre el sensor **HC-SR04** en el diagrama
-2. Aparece un slider de **Distance**
-3. Bajalo por debajo de **200 mm** → el LED se enciende, el buzzer suena y se publica una ALERTA
+1. En un IDE, importar el archivo `esp_software.ino`
+2. Desde el directorio root, ejecutar:
+   ```
+    node sync-env.js
+   ```
+3. Confirmar la creación del `secrets.h`.
+4. Programar al microcontrolador con el código.
 
 ---
 
@@ -150,11 +126,11 @@ Por defecto el email está configurado con **Gmail** (bandeja de pruebas). Para 
 
 ```js
 const transporter = nodemailer.createTransport({
-  service: 'gmail',
+  service: "gmail",
   auth: {
-    user: 'Tu_Gmail',     // tu Gmail
-    pass: 'Tu_Password'          // App Password de 16 caracteres (sin espacios)
-  }
+    user: "Tu_Gmail", // tu Gmail
+    pass: "Tu_Password", // App Password de 16 caracteres (sin espacios)
+  },
 });
 ```
 
@@ -210,9 +186,6 @@ docker compose exec backend node -e "
 
 **El frontend no conecta con el backend**
 Verificá que el backend esté corriendo en el puerto 3001: `docker compose ps`. Si dice `Exit`, revisá los logs con `docker compose logs backend`.
-
-**El ESP32 en Wokwi no se conecta a WiFi**
-El SSID tiene que ser exactamente `Wokwi-GUEST` con contraseña vacía. Verificalo en las primeras líneas de `sketch_v2.ino`.
 
 **Los datos no aparecen en el dashboard**
 El broker `test.mosquitto.org` es público y gratuito; a veces tiene latencia. Esperá unos segundos. Si persiste, verificá que el `MQTT_CLIENT` en el sketch no esté en uso por otra instancia (cambiá `esp32-tof-caece-v2` por cualquier string único).
