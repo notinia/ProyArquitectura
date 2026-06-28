@@ -24,12 +24,13 @@ tof-sistema/
 └── frontend/
 │   ├── src/App.jsx
 │   └── package.json
-├── nodered/
+└── nodered/
     └── node-red-flow.json
 ```
 
-[!CAUTION]
-Recordar crear tu propio `.env` con las credenciales necesarias para la comunicación del microcontrolador con el exterior.
+> [!CAUTION]
+> Recordar crear tu propio `.env` con las credenciales necesarias para la comunicación del microcontrolador con el exterior.
+
 ---
 
 ## 2. Levantar el backend con Docker

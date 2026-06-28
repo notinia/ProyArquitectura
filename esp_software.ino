@@ -19,8 +19,8 @@
 #include <WiFi.h>
 
 // Pines
-const int TRIG_PIN = 26;
-const int ECHO_PIN = 25;
+const int TRIG_PIN = 12;
+const int ECHO_PIN = 14;
 const int LED_PIN = 27;
 const int BUZZER_PIN = 33;
 
